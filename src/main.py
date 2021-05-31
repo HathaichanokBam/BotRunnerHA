@@ -27,23 +27,29 @@ while (True):
     if unattendedID == "No Unattended Bot":
         print("No available bot")
     else:
-        for deviceID in devices["DISCONNECTED"]:
-            fileIDs, timeSchedule = getSchedule(url, token, deviceID)
+        if devices["DISCONNECTED"] == []:
+            print("No disconnected device")
+        else:
+            for deviceID in devices["DISCONNECTED"]:
+                fileIDs, timeSchedule = getSchedule(url, token, deviceID)
 
-        for i in fileIDs:
-            for j in timeSchedule:
-                if (i['id'] == j['id']):
-                    date = j['startDate']
-                    time = j['startTime'] + ':00'
-                    date_time = datetime.strptime(date + " " + time, '%Y-%m-%d %H:%M:%S')
-                    now = datetime.now()
+            if (fileIDs != []):
+                for i in fileIDs:
+                    for j in timeSchedule:
+                        if (i['id'] == j['id']):
+                            date = j['startDate']
+                            time = j['startTime'] + ':00'
+                            date_time = datetime.strptime(date + " " + time, '%Y-%m-%d %H:%M:%S')
+                            now = datetime.now()
 
-                    if date_time > now:
-                        runSchedule(url, token, i["fileID"], i["fileName"], unattendedID, j['startDate'], j['startTime'])
-                    else:   # it's possible??
-                        date_time = date_time + timedelta(minutes=10)
-                        date, time = str(date_time).split(" ")
-                        runSchedule(url, token, i["fileID"], i["fileName"], unattendedID, date, time[0:5])
+                            if date_time > now:
+                                runSchedule(url, token, i["fileID"], i["fileName"], unattendedID, j['startDate'], j['startTime'])
+                            else:   # it's possible??
+                                date_time = date_time + timedelta(minutes=10)
+                                date, time = str(date_time).split(" ")
+                                runSchedule(url, token, i["fileID"], i["fileName"], unattendedID, date, time[0:5])
 
-                    deleteSchedule(url, token, i['id'])
+                            deleteSchedule(url, token, i['id'])
+            else:
+                print("No failed tasks")
     sleep(60)
