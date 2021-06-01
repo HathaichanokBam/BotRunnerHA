@@ -125,6 +125,28 @@ def auditLog(url, token):
     return tasks_unsuccess
 
 
+def deploymentStatus(url, token):
+    headers = {"X-Authorization": token}
+    jsonData = {}
+    try:
+        res = requests.post(url + 'v2/activity/list', data=json.dumps(jsonData), headers=headers)
+        res.raise_for_status()
+    except HTTPError as err:
+        status_code = err.response.status_code
+        if status_code == 401:
+            token = getToken(url)
+            res = requests.post(url + 'v2/activity/list', data=json.dumps(jsonData), headers=headers)
+    tasksInQueue = []
+    runningTasks = []
+    res_dict = json.loads(res.text)
+    for i in res_dict['list']:
+        if i["status"] == "QUEUED":
+            tasksInQueue.append(i)
+        elif i['status'] == "UPDATE":
+            runningTasks.append(i)
+    return tasksInQueue, runningTasks
+
+
 def runSchedule(url, token, fileID, fileName, userID, date, time):
 
     jsonData = {
