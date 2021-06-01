@@ -13,6 +13,7 @@ timeSchedule = []
 tasksInQueue = []
 runningTasks = []
 isAvailable = True
+timeInterval = 900          # 15 minutes
 
 while (True):
     token = getToken(url)
@@ -23,24 +24,69 @@ while (True):
     for task in tasks_unsuccess:
         print(task)
     '''
-    # check device status
+    # check device & status
     devices = checkDevice(url, token)
+
     for deviceID in devices["CONNECTED"]:
+        isAvailable = True
         unattendedID = checkUnattendedBot(url, token, deviceID)
         if unattendedID != "No Unattended Bot":
             for eachRunningTask in runningTasks:
-                print(eachRunningTask["userId"])
-                if eachRunningTask["userId"] == unattendedID:      # connected & unattended but running task
+                if eachRunningTask["userId"] == unattendedID:       # connected & unattended but running task
                     isAvailable = False
                     unattendedIDs[unattendedID] = 0
             if isAvailable:
-                availableIDs[unattendedID] = 0          # connected & unattended & available
+                print(unattendedID)
+                availableIDs[unattendedID] = 0                      # connected & unattended & available
     print(availableIDs)
     print(unattendedIDs)
 
+    # move schedules that in range of time interval to other device
+    for task in runningTasks:
+        fileIDs, timeSchedule = getSchedule(url, token, task['userId'])
+        print(fileIDs)
+        print(timeSchedule)
+        if (fileIDs != []):
+            for i in fileIDs:
+                for j in timeSchedule:
+                    if (i['id'] == j['id']):
+                        date = j['startDate']
+                        time = j['startTime'] + ':00'
+                        date_time = datetime.strptime(date + " " + time, '%Y-%m-%d %H:%M:%S')
+                        now = datetime.now()
+                        print(date_time - now)
+                        timeCheck = timedelta(seconds=timeInterval)
+                        print(timeCheck)
+                        if date_time - now <= timeCheck:
+                            if (availableIDs != {}):
+                                minAssignTask = 100
+                                assignID = 0
+                                for availableID in availableIDs:
+                                    if availableIDs[availableID] < minAssignTask:
+                                        minAssignTask = availableIDs[availableID]
+                                        assignID = availableID
+
+                                runSchedule(url, token, i["fileID"], i["fileName"], assignID, j['startDate'], j['startTime'])
+                                availableIDs[assignID] += 1
+                            else:
+                                minAssignTask = 100
+                                assignID = 0
+                                for unattendedID in unattendedIDs:
+                                    if unattendedIDs[unattendedID] < minAssignTask:
+                                        minAssignTask = unattendedIDs[unattendedID]
+                                        assignID = unattendedID
+
+                                runSchedule(url, token, i["fileID"], i["fileName"], assignID, j['startDate'], j['startTime'])
+                                unattendedIDs[assignID] += 1
+
+                            deleteSchedule(url, token, i['id'])
+
+    '''
     # move queued tasks to available bot
     minAssignTask = 100
     assignID = 0
+    print(tasksInQueue)
+
     for eachTask in tasksInQueue:
         # print(eachTask)
         # print(availableIDs)
@@ -55,8 +101,8 @@ while (True):
             date, time = str(date_time).split(" ")
             runSchedule(url, token, eachTask["fileId"], eachTask["fileName"], assignID, date, time[0:5])
             availableIDs[assignID] += 1
-            deleteSchedule(url, token, eachTask['id'])
-
+            deleteAutomation(url, token, eachTask)
+    '''
     # move schedule for disconnected devices
     if unattendedIDs == {}:
         print("No available bot")
@@ -111,4 +157,4 @@ while (True):
             else:
                 print("No failed tasks")
 
-    sleep(60)
+    sleep(timeInterval)
