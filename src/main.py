@@ -15,6 +15,20 @@ runningTasks = []
 isAvailable = True
 timeInterval = 900          # 15 minutes
 
+'''
+def getFileIDandTime(url, token, id):
+    fileIDs, timeSchedule = getSchedule(url, token, id)
+    print(timeSchedule)
+    if (fileIDs != []):
+        for i in fileIDs:
+            for j in timeSchedule:
+                if (i['id'] == j['id']):
+                    date = j['startDate']
+                    time = j['startTime'] + ':00'
+                    date_time = datetime.strptime(date + " " + time, '%Y-%m-%d %H:%M:%S')
+    return fileIDs, timeSchedule, j['startDate'], j['startTime'], date_time
+'''
+
 while (True):
     token = getToken(url)
     # print(token)
@@ -36,7 +50,6 @@ while (True):
                     isAvailable = False
                     unattendedIDs[unattendedID] = 0
             if isAvailable:
-                print(unattendedID)
                 availableIDs[unattendedID] = 0                      # connected & unattended & available
     print(availableIDs)
     print(unattendedIDs)
@@ -44,7 +57,6 @@ while (True):
     # move schedules that in range of time interval to other device
     for task in runningTasks:
         fileIDs, timeSchedule = getSchedule(url, token, task['userId'])
-        print(fileIDs)
         print(timeSchedule)
         if (fileIDs != []):
             for i in fileIDs:
@@ -54,9 +66,7 @@ while (True):
                         time = j['startTime'] + ':00'
                         date_time = datetime.strptime(date + " " + time, '%Y-%m-%d %H:%M:%S')
                         now = datetime.now()
-                        print(date_time - now)
                         timeCheck = timedelta(seconds=timeInterval)
-                        print(timeCheck)
                         if date_time - now <= timeCheck:
                             if (availableIDs != {}):
                                 minAssignTask = 100
@@ -64,22 +74,49 @@ while (True):
                                 for availableID in availableIDs:
                                     if availableIDs[availableID] < minAssignTask:
                                         minAssignTask = availableIDs[availableID]
-                                        assignID = availableID
 
-                                runSchedule(url, token, i["fileID"], i["fileName"], assignID, j['startDate'], j['startTime'])
-                                availableIDs[assignID] += 1
+                                        fileIDs_, timeSchedule_ = getSchedule(url, token, availableID)
+                                        print(timeSchedule_)
+                                        if (fileIDs_ != []):
+                                            for x in fileIDs_:
+                                                for y in timeSchedule_:
+                                                    if (x['id'] == y['id']):
+                                                        date_ = y['startDate']
+                                                        time_ = y['startTime'] + ':00'
+                                                        date_time_ = datetime.strptime(date_ + " " + time_, '%Y-%m-%d %H:%M:%S')
+                                                        if date_time_ == date_time:
+                                                            print("don't move")
+                                                        else:
+                                                            assignID = availableID
+                                print(assignID)
+                                if assignID != 0:
+                                    runSchedule(url, token, i["fileID"], i["fileName"], assignID, j['startDate'], j['startTime'])
+                                    availableIDs[assignID] += 1
+                                    deleteSchedule(url, token, i['id'])
                             else:
                                 minAssignTask = 100
                                 assignID = 0
                                 for unattendedID in unattendedIDs:
                                     if unattendedIDs[unattendedID] < minAssignTask:
                                         minAssignTask = unattendedIDs[unattendedID]
-                                        assignID = unattendedID
 
-                                runSchedule(url, token, i["fileID"], i["fileName"], assignID, j['startDate'], j['startTime'])
-                                unattendedIDs[assignID] += 1
-
-                            deleteSchedule(url, token, i['id'])
+                                        fileIDs_, timeSchedule_ = getSchedule(url, token, unattendedID)
+                                        if (fileIDs_ != []):
+                                            for x in fileIDs_:
+                                                for y in timeSchedule_:
+                                                    if (x['id'] == y['id']):
+                                                        date_ = y['startDate']
+                                                        time_ = y['startTime'] + ':00'
+                                                        date_time_ = datetime.strptime(date_ + " " + time_, '%Y-%m-%d %H:%M:%S')
+                                                        if date_time_ == date_time:
+                                                            print("don't move")
+                                                        else:
+                                                            assignID = unattendedID
+                                print(assignID)
+                                if assignID != 0:
+                                    runSchedule(url, token, i["fileID"], i["fileName"], assignID, j['startDate'], j['startTime'])
+                                    unattendedIDs[assignID] += 1
+                                    deleteSchedule(url, token, i['id'])
 
     '''
     # move queued tasks to available bot
