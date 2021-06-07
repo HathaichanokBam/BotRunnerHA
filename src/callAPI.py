@@ -43,7 +43,7 @@ def getSchedule(url, token, disconID):
     for i in res_dict["list"]:
         for id in i["runAsUserIds"]:
             if (id == disconID):
-                fileIDs.append({"id": i["id"], "fileID": i["fileId"], "fileName": i["fileName"]})
+                fileIDs.append(i)
                 timeSchedule.append({"id": i["id"], "startDate": i["startDate"], "startTime": i["startTime"]})
     return fileIDs, timeSchedule
 
@@ -147,19 +147,21 @@ def deploymentStatus(url, token):
     return tasksInQueue, runningTasks
 
 
-def runSchedule(url, token, fileID, fileName, userID, date, time):
+def runSchedule(url, token, file, userID, date, time):
+    jsonData = file.copy()
+    entries_to_remove = (
+        'id', 'deviceIds', 'description', 'rdpEnabled', 'zonedNextRunDateTime', 'createdBy', 'createdOn',
+        'updatedBy', 'updatedOn', 'tenantId', 'runAsUserIds', 'botInput', 'tenantUuid', 'overrideDefaultDevice', 'runElevated')
+    for e in entries_to_remove:
+        jsonData.pop(e, None)
 
-    jsonData = {
-        "name": fileName,
-        "fileId": fileID,
-        "timeZone": "Asia/Bangkok",
+    jsonData.update({
         "runAsUserIds": [
             str(userID)
         ],
         "startDate": date,
-        "startTime": time,
-        "status": "ACTIVE"
-    }
+        "startTime": time
+    })
 
     try:
         headers = {"X-Authorization": token}
@@ -171,7 +173,8 @@ def runSchedule(url, token, fileID, fileName, userID, date, time):
             token = getToken(url)
             headers = {"X-Authorization": token}
             res = requests.post(url + 'v1/schedule/automations', data=json.dumps(jsonData), headers=headers)
-    print(res.text)
+    res_dict = json.loads(res.text)
+    return res_dict['id']
 
 
 def deleteSchedule(url, token, id):
@@ -186,3 +189,19 @@ def deleteSchedule(url, token, id):
             headers = {"X-Authorization": token}
             res = requests.delete(url + 'v1/schedule/automations/' + str(id), headers=headers)
     print(res.text)
+
+
+'''
+def deleteAutomation(url, token, id):
+    try:
+        headers = {"X-Authorization": token}
+        res = requests.delete(url + 'v3/wlm/automations/' + str(id), headers=headers)
+        res.raise_for_status()
+    except HTTPError as err:
+        status_code = err.response.status_code
+        if status_code == 401:
+            token = getToken(url)
+            headers = {"X-Authorization": token}
+            res = requests.delete(url + 'v3/wlm/automations/' + str(id), headers=headers)
+    print(res.text)
+'''
