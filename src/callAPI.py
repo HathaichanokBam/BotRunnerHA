@@ -135,6 +135,7 @@ def deploymentStatus(url, token):
         status_code = err.response.status_code
         if status_code == 401:
             token = getToken(url)
+            headers = {"X-Authorization": token}
             res = requests.post(url + 'v2/activity/list', data=json.dumps(jsonData), headers=headers)
     tasksInQueue = []
     runningTasks = []
@@ -173,6 +174,7 @@ def runSchedule(url, token, file, userID, date, time):
             token = getToken(url)
             headers = {"X-Authorization": token}
             res = requests.post(url + 'v1/schedule/automations', data=json.dumps(jsonData), headers=headers)
+    print(res.text)
     res_dict = json.loads(res.text)
     return res_dict['id']
 
